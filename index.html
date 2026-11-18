@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Budget Manager – returning to the app</title>
+  <style>
+    :root { --bg: #f6faf7; --fg: #17201b; --muted: #55635b; --accent: #1b6d4f; --card: #fff; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111613; --fg: #e3ebe6; --muted: #9aa8a0; --accent: #8bd6b2; --card: #1a211d; } }
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+    main { max-width: 480px; margin: 0 auto; padding: 32px 16px; }
+    .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    h1 { font-size: 1.3rem; margin-top: 0; }
+    a.button, button { display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 14px; border-radius: 24px;
+      border: 0; background: var(--accent); color: var(--bg); font-size: 1rem; font-weight: 600; text-decoration: none; margin: 16px 0 8px; }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    p.small { color: var(--muted); font-size: .9rem; }
+    .error { color: #c62828; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1 id="title">Returning to Budget Manager…</h1>
+    <p id="text">If the app does not open by itself, tap the button below.</p>
+    <a id="open" class="button" href="#">Open Budget Manager</a>
+    <button id="copy" class="secondary" type="button">Copy link for manual entry</button>
+    <p class="small">Manual entry: in the app go to <b>More → Bank accounts → Paste a redirect link manually</b> and paste.</p>
+  </div>
+</main>
+<script>
+  // Forwards the bank authorisation result (?code=…&state=… or ?error=…) to the app's deep link.
+  // Nothing is stored or sent anywhere else.
+  (function () {
+    var query = window.location.search.replace(/^\?/, "");
+    var params = new URLSearchParams(query);
+    var deepLink = "budgetmanager://bank-callback" + (query ? "?" + query : "");
+    var intentLink = "intent://bank-callback" + (query ? "?" + query : "") +
+      "#Intent;scheme=budgetmanager;package=com.marcosecci.budget;end";
+    var isAndroid = /Android/i.test(navigator.userAgent);
+    var target = isAndroid ? intentLink : deepLink;
+    document.getElementById("open").href = target;
+
+    if (params.get("error")) {
+      document.getElementById("title").textContent = "The bank connection was not completed";
+      document.getElementById("text").innerHTML = '<span class="error"></span>';
+      document.querySelector(".error").textContent = params.get("error_description") || params.get("error");
+    } else if (!params.get("code")) {
+      document.getElementById("title").textContent = "Budget Manager bank redirect";
+      document.getElementById("text").textContent = "This page is used after you log in to your bank from the app. There is nothing to do here.";
+      document.getElementById("open").style.display = "none";
+      document.getElementById("copy").style.display = "none";
+      return;
+    }
+
+    document.getElementById("copy").addEventListener("click", function () {
+      navigator.clipboard.writeText(deepLink).then(function () {
+        document.getElementById("copy").textContent = "Copied";
+      });
+    });
+    setTimeout(function () { window.location.href = target; }, 300);
+  })();
+</script>
+</body>
+</html>
